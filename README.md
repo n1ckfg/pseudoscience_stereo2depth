@@ -1,4 +1,6 @@
 # pseudoscience_stereo2depth
+http://pseudoscience.pictures/
+by Josh Gladstone and Timotheos Samartzidis
 
 <a href="https://youtu.be/i-QTbpjj4Mw?t=41">Here is a video</a> about getting Stereo2Depth up and running.
 
