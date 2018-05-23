@@ -63,9 +63,14 @@ def Calculate():
             filteredImg = np.clip(filteredImg, 0, 255)
             filteredImg = np.uint8(filteredImg)
             if (precisealignmenthack == '0'):
-                filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
-                filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]                         #
-                filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                if (oneeightysetting=='0'):
+                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                    filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]                         #
+                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                else:
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
+                    filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
             else:
                 imgL2 = cv2.flip(imgL, 1)
                 imgR2 = cv2.flip(imgR, 1)
@@ -103,11 +108,19 @@ def Calculate():
                 filteredImg2 = np.uint8(filteredImg2)
                 filteredImg2 = cv2.flip(filteredImg2, 1)
                 M = np.float32([[1,0,-16],[0,1,0]])
-                filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
-                filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
-                filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
-                filteredImg = filteredImg[0:height, int(width/10):width]
-                filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
+                if (oneeightysetting=='0'):
+                    filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
+                    filteredImg = filteredImg[0:height, int(width/10):width]
+                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)
+                else:
+                    filteredImg = cv2.warpAffine(filteredImg, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = cv2.warpAffine(filteredImg2, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = filteredImg2[0:height, 0:int(width/20)] 
+                    filteredImg = filteredImg[0:height, int(width/20):int(width/2)]
+                    filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
                 
                 # rows,cols = filteredImg.shape[:2]
                 # gradientwidth = rows/10
@@ -118,7 +131,7 @@ def Calculate():
                 #         else:
                 #             alpha = 0
                 #         filteredImg[i][j] = alpha*filteredImg[i][j]+(1-alpha)*filteredImg2[i][j]
-            filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)
+
             cv2.namedWindow('Depth Map', cv2.WINDOW_NORMAL)
             cv2.imshow('Depth Map', filteredImg)
             settings.title(titleStr)
@@ -131,8 +144,12 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
     while True:
         img, filename = q.get()
         height, width = img.shape[:2]
-        imgL = img[0:int((height/2)), 0:width]
-        imgR = img[int((height/2)):height, 0:width]
+        if (oneeightysetting=='0'):
+            imgL = img[0:int((height/2)), 0:width]
+            imgR = img[int((height/2)):height, 0:width]
+        else:
+            imgL = img[0:height, 0:int((width/2))]
+            imgR = img[0:height, int((width/2)):width]
 
         minDisparities=16
         window_size = w2val                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
@@ -175,9 +192,14 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
             filteredImg = np.clip(filteredImg, 0, 255)
             filteredImg = np.uint8(filteredImg)
             if (precisealignmenthack == '0'):
-                filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
-                filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]                         #
-                filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                if (oneeightysetting=='0'):
+                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                    filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]                         #
+                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
+                else:
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
+                    filteredImg = filteredImg[0:height, np.uint16(minDisparities/rez):width]
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
             else:
                 imgL2 = cv2.flip(imgL, 1)
                 imgR2 = cv2.flip(imgR, 1)
@@ -215,12 +237,19 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
                 filteredImg2 = np.uint8(filteredImg2)
                 filteredImg2 = cv2.flip(filteredImg2, 1)
                 M = np.float32([[1,0,-16],[0,1,0]])
-                filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
-                filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
-                filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
-                filteredImg = filteredImg[0:height, int(width/10):width]
-                filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
-                
+                if (oneeightysetting=='0'):
+                    filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
+                    filteredImg = filteredImg[0:height, int(width/10):width]
+                    filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
+                else:
+                    filteredImg = cv2.warpAffine(filteredImg, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = cv2.warpAffine(filteredImg2, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+                    filteredImg2 = filteredImg2[0:height, 0:int(width/20)] 
+                    filteredImg = filteredImg[0:height, int(width/20):int(width/2)]
+                    filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
+                    filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)       
             #filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)
 
             dispthread = Thread(target=threadDisplay, args=(filteredImg,imgL,imgR))
@@ -235,6 +264,11 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
             elif (savefile == 2):
                 filteredImg = cv2.cvtColor(filteredImg, cv2.COLOR_GRAY2RGB)
                 dof = np.concatenate((imgL, filteredImg), axis=0)
+                if (oneeightysetting=='1'):
+                    border = int(((height*2)-(width/2))/2)
+                    dof = cv2.copyMakeBorder(dof, 0, 0, border, border, cv2.BORDER_CONSTANT, value=(0.0, 0.0, 0.0))
+                if (oneeightysetting=='1'):
+                    cv2.copyMakeBorder(dof, 0 , 0, 200, 200, cv2.BORDER_CONSTANT, value=[0, 1, 1])
                 if (savefiletype == 'JPEG'):
                     cv2.imwrite(batchpathname + '/' + filename + '.jpg', dof, [cv2.IMWRITE_JPEG_QUALITY, jpegquality]) 
                 elif (savefiletype == 'PNG'):
@@ -259,8 +293,28 @@ def openfile():
             ret,img = cap.read()
             framecount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
             height, width = img.shape[:2]
-            imgL = img[0:int((height/2)), 0:width]
-            imgR = img[int((height/2)):height, 0:width]
+            if (oneeightysetting=='0'):
+                imgL = img[0:int((height/2)), 0:width]
+                imgR = img[int((height/2)):height, 0:width]
+                cv2.resizeWindow('Depth Map', 800,400)
+                # cv2.moveWindow('Depth Map', 580,225);
+                cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Left Source', 250,125)
+                cv2.moveWindow('Left Source', 580,65);
+                cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Right Source', 250,125)
+                cv2.moveWindow('Right Source', 830,65);
+            else:
+                imgL = img[0:height, 0:int((width/2))]
+                imgR = img[0:height, int((width/2)):width]
+                cv2.resizeWindow('Depth Map', 400,400)
+                # cv2.moveWindow('Depth Map', 580,225);
+                cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Left Source', 125,125)
+                cv2.moveWindow('Left Source', 580,65);
+                cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Right Source', 125,125)
+                cv2.moveWindow('Right Source', 705,65);
             cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
             cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
             cv2.imshow('Left Source', imgL)
@@ -306,8 +360,28 @@ def openfile():
             filename = os.path.splitext(os.path.basename(currentfile))[0]
             img = cv2.imread(currentfile)
             height, width = img.shape[:2]
-            imgL = img[0:int((height/2)), 0:width]
-            imgR = img[int((height/2)):height, 0:width]
+            if (oneeightysetting=='0'):
+                imgL = img[0:int((height/2)), 0:width]
+                imgR = img[int((height/2)):height, 0:width]
+                cv2.resizeWindow('Depth Map', 800,400)
+                # cv2.moveWindow('Depth Map', 580,225);
+                cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Left Source', 250,125)
+                cv2.moveWindow('Left Source', 580,65);
+                cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Right Source', 250,125)
+                cv2.moveWindow('Right Source', 830,65);
+            else:
+                imgL = img[0:height, 0:int((width/2))]
+                imgR = img[0:height, int((width/2)):width]
+                cv2.resizeWindow('Depth Map', 400,400)
+                # cv2.moveWindow('Depth Map', 580,225);
+                cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Left Source', 125,125)
+                cv2.moveWindow('Left Source', 580,65);
+                cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Right Source', 125,125)
+                cv2.moveWindow('Right Source', 705,65);
             cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
             cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
             cv2.imshow('Left Source', imgL)
@@ -334,8 +408,28 @@ def openfolder():
         filename = os.path.splitext(os.path.basename(currentfile))[0]
         img = cv2.imread(currentfile)
         height, width = img.shape[:2]
-        imgL = img[0:int((height/2)), 0:width]
-        imgR = img[int((height/2)):height, 0:width]
+        if (oneeightysetting=='0'):
+            imgL = img[0:int((height/2)), 0:width]
+            imgR = img[int((height/2)):height, 0:width]
+            cv2.resizeWindow('Depth Map', 800,400)
+            # cv2.moveWindow('Depth Map', 580,225);
+            cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Left Source', 250,125)
+            cv2.moveWindow('Left Source', 580,65);
+            cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Right Source', 250,125)
+            cv2.moveWindow('Right Source', 830,65);
+        else:
+            imgL = img[0:height, 0:int((width/2))]
+            imgR = img[0:height, int((width/2)):width]
+            cv2.resizeWindow('Depth Map', 400,400)
+            # cv2.moveWindow('Depth Map', 580,225);
+            cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Left Source', 125,125)
+            cv2.moveWindow('Left Source', 580,65);
+            cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow('Right Source', 125,125)
+            cv2.moveWindow('Right Source', 705,65);
         cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
         cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
         cv2.imshow('Left Source', imgL)
@@ -387,12 +481,36 @@ def updateValue(event):
         cap.set(cv2.CAP_PROP_POS_FRAMES,seekslider.get()-1);
         ret, img = cap.read()
     elif (currentfiletype == 'image'):
-        img = cv2.imread(files[seekslider.get()-1])
+        try:
+            img = cv2.imread(files[seekslider.get()-1])
+        except:
+            img = cv2.imread(currentfile)
     else:
         return
     height, width = img.shape[:2]
-    imgL = img[0:int((height/2)), 0:width]
-    imgR = img[int((height/2)):height, 0:width]
+    if (oneeightysetting=='0'):
+        imgL = img[0:int((height/2)), 0:width]
+        imgR = img[int((height/2)):height, 0:width]
+        cv2.resizeWindow('Depth Map', 800,400)
+        # cv2.moveWindow('Depth Map', 580,225);
+        cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Left Source', 250,125)
+        cv2.moveWindow('Left Source', 580,65);
+        cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Right Source', 250,125)
+        cv2.moveWindow('Right Source', 830,65);
+    else:
+        imgL = img[0:height, 0:int((width/2))]
+        imgR = img[0:height, int((width/2)):width]
+        cv2.resizeWindow('Depth Map', 400,400)
+        # cv2.moveWindow('Depth Map', 580,225);
+        cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Left Source', 125,125)
+        cv2.moveWindow('Left Source', 580,65);
+        cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Right Source', 125,125)
+        cv2.moveWindow('Right Source', 705,65);
+
     cv2.imshow('Left Source', imgL)
     cv2.imshow('Right Source', imgR)
     Calculate()
@@ -425,6 +543,9 @@ def SaveFile(savefile, batch):
         elif (savefile == 2):
             thedepth = cv2.cvtColor(thedepth, cv2.COLOR_GRAY2RGB)
             dof = np.concatenate((imgL, thedepth), axis=0)
+            if (oneeightysetting=='1'):
+                border = int(((height*2)-(width/2))/2)
+                dof = cv2.copyMakeBorder(dof, 0, 0, border, border, cv2.BORDER_CONSTANT, value=(0.0, 0.0, 0.0))
             if (savefiletype == 'JPEG'):
                 cv2.imwrite(pathname + '/' + filename + '_6DoF.jpg', dof, [cv2.IMWRITE_JPEG_QUALITY, jpegquality])
                 print ('Saved: ' + pathname + '/' + filename + '_6DoF.jpg\a')
@@ -607,17 +728,18 @@ def defaultSettings():
     Calculate()
 
 def advancedsettings(event):
-    global threadsslider, savefiletypestring, jpegqualityslider, precisealignmentbool, numberofthreads, savefiletype, jpegquality, precisealignmenthack
+    global threadsslider, savefiletypestring, jpegqualityslider, precisealignmentbool, oneeightybool, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting
     try:
         numberofthreads = threadsslider.get()
         savefiletype = savefiletypestring.get()
         jpegquality = jpegqualityslider.get()
         precisealignmenthack = precisealignmentbool.get()
+        oneeightysetting = oneeightybool.get()
     except:
         pass
 
 def showadvancedsettings():
-    global advancedsettingswindow, threadsslider, savefiletypestring, precisealignmentbool, jpegqualityslider, numberofthreads, savefiletype, jpegquality, precisealignmenthack
+    global advancedsettingswindow, threadsslider, savefiletypestring, precisealignmentbool, oneeightybool, jpegqualityslider, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting
     try:
         advancedsettingswindow.destroy()
     except:
@@ -625,7 +747,7 @@ def showadvancedsettings():
 
     advancedsettingswindow = Tk()
     advancedsettingswindow.title('Advanced Settings')
-    advancedsettingswindow.geometry('450x220+85+350')
+    advancedsettingswindow.geometry('450x270+85+350')
     advancedsettingsCanvas = Canvas(advancedsettingswindow)
     advancedsettingsCanvas.grid(row=0, column=0, padx=40, pady=15)
     Label(advancedsettingsCanvas, text='Number of Threads').grid(row=0,column=0,padx=5,sticky=E)
@@ -642,12 +764,17 @@ def showadvancedsettings():
     jpegqualityslider = Scale(advancedsettingsCanvas, from_=1, to=100, orient=HORIZONTAL, length=200, command=advancedsettings)
     jpegqualityslider.grid(row=2,column=1,padx=5)
     jpegqualityslider.set(jpegquality)
-    Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=3,column=0,padx=5,sticky=E)
+    Label(advancedsettingsCanvas, text='VR180 Input').grid(row=3,column=0,padx=5,sticky=E)
+    oneeightybool = StringVar(advancedsettingsCanvas)  
+    oneeightybool.set(oneeightysetting)    
+    oneeightycheck = Checkbutton(advancedsettingsCanvas, variable=oneeightybool, command=lambda:advancedsettings(0))
+    oneeightycheck.grid(row=3,column=1,pady=15,columnspan=2)
+    Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=4,column=0,padx=5,sticky=E)
     precisealignmentbool = StringVar(advancedsettingsCanvas)  
     precisealignmentbool.set(precisealignmenthack)    
     precisealignmentcheck = Checkbutton(advancedsettingsCanvas, variable=precisealignmentbool, command=lambda:advancedsettings(0))
     #precisealignmentcheck.config(width=15)
-    precisealignmentcheck.grid(row=3,column=1,pady=15,columnspan=2)
+    precisealignmentcheck.grid(row=4,column=1,pady=15,columnspan=2)
 
 def seekthread(seekto, cap):
     x = 0
@@ -743,7 +870,7 @@ seekwindow.withdraw()
 
 advancedsettingswindow = Tk()
 advancedsettingswindow.title('Advanced Settings')
-advancedsettingswindow.geometry('450x230+85+350')
+advancedsettingswindow.geometry('450x270+85+350')
 advancedsettingsCanvas = Canvas(advancedsettingswindow)
 advancedsettingsCanvas.grid(row=0, column=0, padx=40, pady=15)
 Label(advancedsettingsCanvas, text='Number of Threads').grid(row=0,column=0,padx=5,sticky=E)
@@ -760,17 +887,22 @@ Label(advancedsettingsCanvas, text='Jpeg Quality').grid(row=2,column=0,padx=5,st
 jpegqualityslider = Scale(advancedsettingsCanvas, from_=1, to=100, orient=HORIZONTAL, length=200)
 jpegqualityslider.grid(row=2,column=1,padx=5)
 jpegqualityslider.set(100)
-Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=3,column=0,padx=5,sticky=E)
+Label(advancedsettingsCanvas, text='VR180 Input').grid(row=3,column=0,padx=5,sticky=E)
+oneeightybool = StringVar(advancedsettingsCanvas)  
+oneeightycheck = Checkbutton(advancedsettingsCanvas, variable=oneeightybool, command=lambda:advancedsettings(0))
+oneeightycheck.grid(row=3,column=1,pady=15,columnspan=2)
+Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=4,column=0,padx=5,sticky=E)
 precisealignmentbool = StringVar(advancedsettingsCanvas)  
 precisealignmentcheck = Checkbutton(advancedsettingsCanvas, variable=precisealignmentbool)
 #precisealignmentcheck.config(width=15)
-precisealignmentcheck.grid(row=3,column=1,pady=15)
+precisealignmentcheck.grid(row=4,column=1,pady=15)
 advancedsettings(0)
 advancedsettingswindow.withdraw()
 numberofthreads = 20
 savefiletype='JPEG'
 jpegquality=100
 precisealignmenthack = '0'
+oneeightysetting = '0'
 
 progresswindow = Tk()
 progresswindow.title('Progress')
@@ -823,7 +955,7 @@ buttonCanvas = Canvas(settings)
 buttonCanvas.grid(row=1, column=0, padx=10, columnspan=2)
 updateCanvas = Canvas(buttonCanvas)
 updateCanvas.grid(row=0, column=0, padx=0, pady=7, columnspan=2)
-updateButton = Button(updateCanvas, text='Update', width=40, command=Calculate)
+updateButton = Button(updateCanvas, text='Update', width=40, command=lambda:updateValue(0))
 updateButton.grid(row=0,column=0, columnspan=2)
 updateButton.configure(background='white')
 checkbox = Checkbutton(updateCanvas, text='Auto-Update', variable=autoupdatebool)

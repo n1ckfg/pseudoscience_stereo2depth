@@ -1,0 +1,34 @@
+﻿Pseudoscience Stereo2Depth Changelog:
+
+Version 1.7:
+	Added support for side-by-side VR180 source material. Option is located in advanced settings.
+
+Version 1.6:
+	Added 'Precision Alignment Hack' to advanced settings. There is a bug in OpenCV that truncates part of the depth map and leaves a black vertical band on the left side of the image. As a workaround, Stereo2Depth crops that area and stretches the depth map to the original size. This is hacky, and throws off the alignment of the depth map. 'Precision Alignment Hack' is a different workaround that flips all the images, calculates a second depth map, and then uses part of the second depth map to patch the truncated area of the first depth map. But because it has to calculate two depth maps, it doubles the processing time, and can add a small seam where the two different depth maps are joined, which is why it's an option.
+
+Version 1.5.5:
+	Automatically check for updates
+	Different batch naming scheme to make handling exported image sequences easier. Numbers are at the end of the file name now.
+	Fixed issue with special characters in source filename
+
+Version 1.5:
+	Major rewrite
+	New User Interface
+	Threaded batch processing
+	Support for video files
+	In and out points
+	Png and tiff exporting
+	Jpeg quality settings
+	Progress bar during export﻿
+
+Version 1.3:
+	Batch processing image sequences
+
+Version 1.2:
+	Bug fixes
+
+Version 1.1:
+	Bug fixes
+
+Version 1.0:
+	Initial release
