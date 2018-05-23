@@ -1,5 +1,10 @@
 ﻿Pseudoscience Stereo2Depth Changelog:
 
+Version 1.8:
+	Added horizontal offset slider, allowing you to shift the equirectangular image around.
+	Added support for exporting stereo depth maps.
+	Added Save Settings and Load Settings buttons, so that you can save all your settings for reuse.
+
 Version 1.7:
 	Added support for side-by-side VR180 source material. Option is located in advanced settings.
 

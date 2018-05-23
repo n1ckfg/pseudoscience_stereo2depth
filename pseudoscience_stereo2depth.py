@@ -19,12 +19,13 @@ from tkinter import ttk
 from tkinter import messagebox
 
 def Calculate():
-    global currentfile, img, height, width, imgL, imgR, titleStr
+    global currentfile, img, height, width, imgL, imgR, titleStr, RightEye
     if (currentfile != ''):
         settings.title(titleStr + '    ( Working. . . )')
         minDisparities=16
         window_size = w2.get()                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
         rez = w0.get() / 20.0
+
         if (rez > 0):
             resL = cv2.resize(imgL,None,fx=rez, fy=rez, interpolation = cv2.INTER_AREA)
             resR = cv2.resize(imgR,None,fx=rez, fy=rez, interpolation = cv2.INTER_AREA)
@@ -55,8 +56,14 @@ def Calculate():
 
             displ = left_matcher.compute(resL, resR)
             dispr = right_matcher.compute(resR, resL)
-            imgLb = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+
+            if (RightEye == False):
+                imgLb = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+            else:
+                imgLb = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=0, right=np.uint16(minDisparities), borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+
             filteredImg = wls_filter.filter(displ, imgLb, None, dispr)
+
             filteredImg = filteredImg * rez
             filteredImg = filteredImg + (w5.get()-100)
             filteredImg = (w6.get()/10.0)*(filteredImg - 128) + 128
@@ -99,7 +106,12 @@ def Calculate():
 
                 displ2 = left_matcher2.compute(resR2, resL2)
                 dispr2 = right_matcher2.compute(resL2, resR2)
-                imgLb2 = cv2.copyMakeBorder(imgL2, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+
+                if (RightEye == False):
+                    imgLb2 = cv2.copyMakeBorder(imgL2, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+                else:
+                    imgLb2 = cv2.copyMakeBorder(imgL2, top=0, bottom=0, left=0, right=np.uint16(minDisparities), borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+
                 filteredImg2 = wls_filter.filter(displ2, imgLb2, None, dispr2)
                 filteredImg2 = filteredImg2 * rez
                 filteredImg2 = filteredImg2 + (w5.get()-100)
@@ -113,7 +125,7 @@ def Calculate():
                     filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
                     filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
                     filteredImg = filteredImg[0:height, int(width/10):width]
-                    filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)
+                    filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
                 else:
                     filteredImg = cv2.warpAffine(filteredImg, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
                     filteredImg2 = cv2.warpAffine(filteredImg2, M, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
@@ -121,16 +133,9 @@ def Calculate():
                     filteredImg = filteredImg[0:height, int(width/20):int(width/2)]
                     filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
                     filteredImg = cv2.resize(filteredImg,(int(width/2), height), interpolation = cv2.INTER_CUBIC)
-                
-                # rows,cols = filteredImg.shape[:2]
-                # gradientwidth = rows/10
-                # for i in range(rows):
-                #     for j in range(cols):
-                #         if (j > (cols/2)-gradientwidth):
-                #             alpha = np.clip((j - (cols/2)+gradientwidth)/gradientwidth, 0, 1)
-                #         else:
-                #             alpha = 0
-                #         filteredImg[i][j] = alpha*filteredImg[i][j]+(1-alpha)*filteredImg2[i][j]
+
+            cv2.imshow('Left Source', imgL)
+            cv2.imshow('Right Source', imgR)
 
             cv2.namedWindow('Depth Map', cv2.WINDOW_NORMAL)
             cv2.imshow('Depth Map', filteredImg)
@@ -140,16 +145,26 @@ def Calculate():
             print ('Resolution must be greater than 0.')
 
 
-def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefile):
+def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, w7val, savefile):
     while True:
         img, filename = q.get()
         height, width = img.shape[:2]
         if (oneeightysetting=='0'):
             imgL = img[0:int((height/2)), 0:width]
             imgR = img[int((height/2)):height, 0:width]
+
+            offsetValue = ((w7.get() - 50)/100)*width
+            Q = np.float32([[1,0, offsetValue],[0,1,0]])
+            img = cv2.warpAffine(img, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+            imgL = cv2.warpAffine(imgL, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+            imgR = cv2.warpAffine(imgR, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
         else:
             imgL = img[0:height, 0:int((width/2))]
             imgR = img[0:height, int((width/2)):width]
+            Q = np.float32([[1,0,0],[0,1,0]])
+            img = cv2.warpAffine(img, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+            imgL = cv2.warpAffine(imgL, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+            imgR = cv2.warpAffine(imgR, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
 
         minDisparities=16
         window_size = w2val                     # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
@@ -184,6 +199,7 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
 
             displ = left_matcher.compute(resL, resR)
             dispr = right_matcher.compute(resR, resL)
+
             imgLb = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
             filteredImg = wls_filter.filter(displ, imgLb, None, dispr)
             filteredImg = filteredImg * rez
@@ -191,6 +207,17 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
             filteredImg = (w6val/10.0)*(filteredImg - 128) + 128
             filteredImg = np.clip(filteredImg, 0, 255)
             filteredImg = np.uint8(filteredImg)
+            
+            if (stereodepthsetting == '1' and savefile == 1):
+                imgLb2 = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=0, right=np.uint16(minDisparities), borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+                filteredImgRight = wls_filter.filter(displ, imgLb2, None, dispr)
+                filteredImgRight = filteredImgRight * rez
+                filteredImgRight = filteredImgRight + (w5val-100)
+                filteredImgRight = (w6val/10.0)*(filteredImgRight - 128) + 128
+                filteredImgRight = np.clip(filteredImg, 0, 255)
+                filteredImgRight = np.uint8(filteredImgRight)
+                filteredImg = np.concatenate((filteredImg, filteredImgRight), axis=0)
+
             if (precisealignmenthack == '0'):
                 if (oneeightysetting=='0'):
                     filteredImg = cv2.resize(filteredImg,(width,int(height/2)), interpolation = cv2.INTER_CUBIC)     # Disparity truncation hack
@@ -228,6 +255,7 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
 
                 displ2 = left_matcher2.compute(resR2, resL2)
                 dispr2 = right_matcher2.compute(resL2, resR2)
+
                 imgLb2 = cv2.copyMakeBorder(imgL2, top=0, bottom=0, left=np.uint16(minDisparities), right=0, borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
                 filteredImg2 = wls_filter.filter(displ2, imgLb2, None, dispr2)
                 filteredImg2 = filteredImg2 * rez
@@ -236,10 +264,26 @@ def ThreadedCalculate(q, w0val, w1val, w2val, w3val, w4val, w5val, w6val, savefi
                 filteredImg2 = np.clip(filteredImg2, 0, 255)
                 filteredImg2 = np.uint8(filteredImg2)
                 filteredImg2 = cv2.flip(filteredImg2, 1)
+
+                if (stereodepthsetting == '1' and savefile == 1):
+                    imgLb2a = cv2.copyMakeBorder(imgL, top=0, bottom=0, left=0, right=np.uint16(minDisparities), borderType= cv2.BORDER_CONSTANT, value=[155,155,155] )
+                    filteredImgRight2 = wls_filter.filter(displ2, imgLb2a, None, dispr2)
+                    filteredImgRight2 = filteredImgRight2 * rez
+                    filteredImgRight2 = filteredImgRight2 + (w5val-100)
+                    filteredImgRight2 = (w6val/10.0)*(filteredImgRight2 - 128) + 128
+                    filteredImgRight2 = np.clip(filteredImgRight2, 0, 255)
+                    filteredImgRight2 = np.uint8(filteredImgRight2)
+                    filteredImgRight2 = cv2.flip(filteredImgRight2, 1)
+                    filteredImg2 = np.concatenate((filteredImg2, filteredImgRight2), axis=0)
+
                 M = np.float32([[1,0,-16],[0,1,0]])
                 if (oneeightysetting=='0'):
-                    filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
-                    filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    if (stereodepthsetting == '0' or savefile == 2):
+                        filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                        filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+                    else:
+                        filteredImg = cv2.warpAffine(filteredImg, M, (width, int(height)), borderMode=cv2.BORDER_WRAP)
+                        filteredImg2 = cv2.warpAffine(filteredImg2, M, (width, int(height)), borderMode=cv2.BORDER_WRAP)
                     filteredImg2 = filteredImg2[0:height, 0:int(width/10)] 
                     filteredImg = filteredImg[0:height, int(width/10):width]
                     filteredImg = np.concatenate((filteredImg2, filteredImg), axis=1)
@@ -317,8 +361,6 @@ def openfile():
                 cv2.moveWindow('Right Source', 705,65);
             cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
             cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
-            cv2.imshow('Left Source', imgL)
-            cv2.imshow('Right Source', imgR)
             titleStr = 'Stereo2Depth   [Batching ' + str(framecount) + ' frames]'
             Calculate()
             try:
@@ -384,8 +426,6 @@ def openfile():
                 cv2.moveWindow('Right Source', 705,65);
             cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
             cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
-            cv2.imshow('Left Source', imgL)
-            cv2.imshow('Right Source', imgR)
             titleStr = 'Stereo2Depth'
             
             seekwindow.withdraw()
@@ -432,8 +472,6 @@ def openfolder():
             cv2.moveWindow('Right Source', 705,65);
         cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
         cv2.namedWindow('Right Source', cv2.WINDOW_NORMAL)
-        cv2.imshow('Left Source', imgL)
-        cv2.imshow('Right Source', imgR)
         titleStr = 'Stereo2Depth   [Batching ' + str(len(files)) + ' files]'
         Calculate()
         try:
@@ -491,6 +529,13 @@ def updateValue(event):
     if (oneeightysetting=='0'):
         imgL = img[0:int((height/2)), 0:width]
         imgR = img[int((height/2)):height, 0:width]
+
+        offsetValue = ((w7.get() - 50)/100)*width
+        Q = np.float32([[1,0, offsetValue],[0,1,0]])
+        img = cv2.warpAffine(img, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+        imgL = cv2.warpAffine(imgL, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+        imgR = cv2.warpAffine(imgR, Q, (width, int(height/2)), borderMode=cv2.BORDER_WRAP)
+
         cv2.resizeWindow('Depth Map', 800,400)
         # cv2.moveWindow('Depth Map', 580,225);
         cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
@@ -502,6 +547,12 @@ def updateValue(event):
     else:
         imgL = img[0:height, 0:int((width/2))]
         imgR = img[0:height, int((width/2)):width]
+
+        Q = np.float32([[1,0,0],[0,1,0]])
+        img = cv2.warpAffine(img, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+        imgL = cv2.warpAffine(imgL, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+        imgR = cv2.warpAffine(imgR, Q, (int(width/2), height), borderMode=cv2.BORDER_WRAP)
+
         cv2.resizeWindow('Depth Map', 400,400)
         # cv2.moveWindow('Depth Map', 580,225);
         cv2.namedWindow('Left Source', cv2.WINDOW_NORMAL)
@@ -511,8 +562,6 @@ def updateValue(event):
         cv2.resizeWindow('Right Source', 125,125)
         cv2.moveWindow('Right Source', 705,65);
 
-    cv2.imshow('Left Source', imgL)
-    cv2.imshow('Right Source', imgR)
     Calculate()
 
 def threadDisplay(depthmap, imgl, imgr):
@@ -524,11 +573,18 @@ def threadDisplay(depthmap, imgl, imgr):
         pass
 
 def SaveFile(savefile, batch):
-    global currentfile, currentdirectory, img, height, width, imgL, imgR, pathname, filename, files, batchpathname, currentfiletype, abort, InFrame, OutFrame
+    global currentfile, currentdirectory, img, height, width, imgL, imgR, pathname, filename, files, batchpathname, currentfiletype, abort, InFrame, OutFrame, RightEye
     
     if (batch == 0 and savefile != 0 and currentfile != ''):
         filename = os.path.splitext(os.path.basename(currentfile))[0]
+        # //come back here
         thedepth = Calculate()
+
+        if (stereodepthsetting == '1' and savefile == 1):
+            RightEye = True
+            thedepthright = Calculate()
+            RightEye = False
+            thedepth = np.concatenate((thedepth, thedepthright), axis=0)
 
         if (savefile == 1):
             if (savefiletype == 'JPEG'):
@@ -590,7 +646,7 @@ def SaveFile(savefile, batch):
         q = Queue(maxsize=0)
 
         for i in range(numberofthreads):
-            worker = Thread(target=ThreadedCalculate, args=(q, w0.get(), w1.get(), w2.get(), w3.get(), w4.get(), w5.get(), w6.get(), savefile))
+            worker = Thread(target=ThreadedCalculate, args=(q, w0.get(), w1.get(), w2.get(), w3.get(), w4.get(), w5.get(), w6.get(), w7.get(), savefile))
             worker.setDaemon(True)
             worker.start()
 
@@ -662,7 +718,7 @@ def SaveFile(savefile, batch):
         q = Queue(maxsize=0)
 
         for i in range(numberofthreads):
-            worker = Thread(target=ThreadedCalculate, args=(q, w0.get(), w1.get(), w2.get(), w3.get(), w4.get(), w5.get(), w6.get(), savefile))
+            worker = Thread(target=ThreadedCalculate, args=(q, w0.get(), w1.get(), w2.get(), w3.get(), w4.get(), w5.get(), w6.get(), w7.get(), savefile))
             worker.daemon = True
             worker.start()
 
@@ -710,7 +766,8 @@ def SaveFile(savefile, batch):
 def autoupdate(value):
     global autoupdatebool
     if (autoupdatebool.get() == 1):
-        Calculate()
+        #Calculate()
+        updateValue(0)
 
 def cancelsave():
     global abort
@@ -724,22 +781,24 @@ def defaultSettings():
     w4.set(80)
     w5.set(100)
     w6.set(10)
+    w7.set(50)
     settings.update()
     Calculate()
 
 def advancedsettings(event):
-    global threadsslider, savefiletypestring, jpegqualityslider, precisealignmentbool, oneeightybool, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting
+    global threadsslider, savefiletypestring, jpegqualityslider, precisealignmentbool, oneeightybool, stereodepthbool, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting, stereodepthsetting
     try:
         numberofthreads = threadsslider.get()
         savefiletype = savefiletypestring.get()
         jpegquality = jpegqualityslider.get()
         precisealignmenthack = precisealignmentbool.get()
         oneeightysetting = oneeightybool.get()
+        stereodepthsetting = stereodepthbool.get()
     except:
         pass
 
 def showadvancedsettings():
-    global advancedsettingswindow, threadsslider, savefiletypestring, precisealignmentbool, oneeightybool, jpegqualityslider, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting
+    global advancedsettingswindow, threadsslider, savefiletypestring, precisealignmentbool, oneeightybool, stereodepthbool, jpegqualityslider, numberofthreads, savefiletype, jpegquality, precisealignmenthack, oneeightysetting, stereodepthsetting
     try:
         advancedsettingswindow.destroy()
     except:
@@ -747,7 +806,7 @@ def showadvancedsettings():
 
     advancedsettingswindow = Tk()
     advancedsettingswindow.title('Advanced Settings')
-    advancedsettingswindow.geometry('450x270+85+350')
+    advancedsettingswindow.geometry('450x340+85+350')
     advancedsettingsCanvas = Canvas(advancedsettingswindow)
     advancedsettingsCanvas.grid(row=0, column=0, padx=40, pady=15)
     Label(advancedsettingsCanvas, text='Number of Threads').grid(row=0,column=0,padx=5,sticky=E)
@@ -769,12 +828,17 @@ def showadvancedsettings():
     oneeightybool.set(oneeightysetting)    
     oneeightycheck = Checkbutton(advancedsettingsCanvas, variable=oneeightybool, command=lambda:advancedsettings(0))
     oneeightycheck.grid(row=3,column=1,pady=15,columnspan=2)
-    Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=4,column=0,padx=5,sticky=E)
+    Label(advancedsettingsCanvas, text='Export Stereo Depthmaps').grid(row=4,column=0,padx=5,sticky=E)
+    stereodepthbool = StringVar(advancedsettingsCanvas)  
+    stereodepthbool.set(stereodepthsetting)    
+    stereodepthcheck = Checkbutton(advancedsettingsCanvas, variable=stereodepthbool, command=lambda:advancedsettings(0))
+    stereodepthcheck.grid(row=4,column=1,pady=15,columnspan=2)
+    Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=5,column=0,padx=5,sticky=E)
     precisealignmentbool = StringVar(advancedsettingsCanvas)  
     precisealignmentbool.set(precisealignmenthack)    
     precisealignmentcheck = Checkbutton(advancedsettingsCanvas, variable=precisealignmentbool, command=lambda:advancedsettings(0))
     #precisealignmentcheck.config(width=15)
-    precisealignmentcheck.grid(row=4,column=1,pady=15,columnspan=2)
+    precisealignmentcheck.grid(row=5,column=1,pady=15,columnspan=2)
 
 def seekthread(seekto, cap):
     x = 0
@@ -808,9 +872,9 @@ def VersionCheck():
             html = html.lstrip('b')
             html = html.strip('\'')
             theversion = sys.argv[0]
-            theversion = theversion[-6:]
+            # theversion = theversion[-6:]
+            theversion = theversion[-8:]
             theversion = theversion.rstrip('.py')
-            print(theversion)
         if (html != theversion):
             print ('New version available! Check the sidebar at reddit.com/r/6DoF to download Stereo2Depth version ' + html)
             messagebox.showwarning(
@@ -820,6 +884,48 @@ def VersionCheck():
             return
     except:
         pass
+
+def saveSettings():
+    global pathname, filename, numberofthreads, savefiletype, jpegquality, oneeightysetting, stereodepthsetting, precisealignmenthack
+    settings.update()
+    advancedsettings(0)
+    settingsstring = str(w0.get()) + ',' + str(w1.get()) + ',' + str(w2.get()) + ',' + str(w3.get()) + ',' + str(w4.get()) + ',' + str(w5.get()) + ',' + str(w6.get()) + ',' + str(w7.get()) + ',' + str(numberofthreads) + "," + str(savefiletype) + "," + str(jpegquality) + "," + str(oneeightysetting) + "," + str(stereodepthsetting) + "," + str(precisealignmenthack)
+    try:
+        filename = os.path.splitext(os.path.basename(currentfile))[0]
+        settingssavepath = pathname + '/' + filename + '.s2d'
+    except:
+        settingsfile = filedialog.asksaveasfilename()
+        settingssavepath = settingsfile + '.s2d'
+    f = open(settingssavepath,'w')
+    f.write(settingsstring)
+    f.close()
+
+def loadSettings():
+    global numberofthreads, savefiletype, jpegquality, oneeightysetting, stereodepthsetting, precisealignmenthack
+    settingsfile = filedialog.askopenfilename()
+    with open(settingsfile, "r") as filestream:
+        for line in filestream:
+            currentline = line.split(",")
+            #total = str(int(currentline[0]) + int(currentline[1]) + int(currentline [2])) + "\n"
+            w0.set(int(currentline[0]))
+            w1.set(int(currentline[1]))
+            w2.set(int(currentline[2]))
+            w3.set(int(currentline[3]))
+            w4.set(int(currentline[4]))
+            w5.set(int(currentline[5]))
+            w6.set(int(currentline[6]))
+            w7.set(int(currentline[7]))
+            numberofthreads = int(currentline[8])
+            savefiletype = currentline[9]
+            jpegquality = int(currentline[10])
+            oneeightysetting = int(currentline[11])
+            stereodepthsetting = int(currentline[12])
+            precisealignmenthack = int(currentline[13])
+    # settings.update()
+    showadvancedsettings()
+    advancedsettings(0)
+    updateValue(0)
+    advancedsettingswindow.withdraw()
 
 currentfile = ''
 currentfiletype = ''
@@ -839,9 +945,9 @@ cv2.moveWindow('Right Source', 830,65);
 autoupdatebool = IntVar()
 settings.title(titleStr)
 if (os.name == 'nt'):
-    settings.geometry('520x590+50+65')
+    settings.geometry('520x670+50+65')
 else:
-    settings.geometry('520x520+50+65')
+    settings.geometry('520x600+50+65')
 settings.columnconfigure(0, weight=1)
 settings.columnconfigure(1, weight=1)
 seekwindow = Tk()
@@ -870,7 +976,7 @@ seekwindow.withdraw()
 
 advancedsettingswindow = Tk()
 advancedsettingswindow.title('Advanced Settings')
-advancedsettingswindow.geometry('450x270+85+350')
+advancedsettingswindow.geometry('450x340+85+350')
 advancedsettingsCanvas = Canvas(advancedsettingswindow)
 advancedsettingsCanvas.grid(row=0, column=0, padx=40, pady=15)
 Label(advancedsettingsCanvas, text='Number of Threads').grid(row=0,column=0,padx=5,sticky=E)
@@ -891,11 +997,15 @@ Label(advancedsettingsCanvas, text='VR180 Input').grid(row=3,column=0,padx=5,sti
 oneeightybool = StringVar(advancedsettingsCanvas)  
 oneeightycheck = Checkbutton(advancedsettingsCanvas, variable=oneeightybool, command=lambda:advancedsettings(0))
 oneeightycheck.grid(row=3,column=1,pady=15,columnspan=2)
-Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=4,column=0,padx=5,sticky=E)
+Label(advancedsettingsCanvas, text='Export Stereo Depthmaps').grid(row=4,column=0,padx=5,sticky=E)
+stereodepthbool = StringVar(advancedsettingsCanvas)  
+stereodepthcheck = Checkbutton(advancedsettingsCanvas, variable=stereodepthbool, command=lambda:advancedsettings(0))
+stereodepthcheck.grid(row=4,column=1,pady=15,columnspan=2)
+Label(advancedsettingsCanvas, text='Precise Alignment Hack\n(doubles processing time)').grid(row=5,column=0,padx=5,sticky=E)
 precisealignmentbool = StringVar(advancedsettingsCanvas)  
 precisealignmentcheck = Checkbutton(advancedsettingsCanvas, variable=precisealignmentbool)
 #precisealignmentcheck.config(width=15)
-precisealignmentcheck.grid(row=4,column=1,pady=15)
+precisealignmentcheck.grid(row=5,column=1,pady=15)
 advancedsettings(0)
 advancedsettingswindow.withdraw()
 numberofthreads = 20
@@ -903,6 +1013,8 @@ savefiletype='JPEG'
 jpegquality=100
 precisealignmenthack = '0'
 oneeightysetting = '0'
+stereodepthsetting = '0'
+RightEye = False
 
 progresswindow = Tk()
 progresswindow.title('Progress')
@@ -949,6 +1061,10 @@ Label(sliderCanvas,justify=LEFT, text='Contrast').grid(row=6,column=0,padx=5,sti
 w6 = Scale(sliderCanvas, from_=0, to=30, orient=HORIZONTAL, length=350, showvalue=0, command=autoupdate)
 w6.grid(row=6,column=1,padx=5,pady=7,sticky=W)
 w6.set(10)
+Label(sliderCanvas,justify=LEFT, text='Horizontal Offset').grid(row=7,column=0,padx=5,sticky=E)
+w7 = Scale(sliderCanvas, from_=0, to=100, orient=HORIZONTAL, length=350, showvalue=0, command=autoupdate)
+w7.grid(row=7,column=1,padx=5,pady=7,sticky=W)
+w7.set(50)
 settings.update()
 
 buttonCanvas = Canvas(settings)
@@ -985,13 +1101,24 @@ savebatchButton = Button(buttonCanvas, text='Batch Export 6DoF', width=25, comma
 savebatchButton.grid(row=3,column=1,pady=10,padx=20,sticky=E)
 savebatchButton.configure(background='white')
 
+advancedsettingsButton = Button(buttonCanvas, text='Advanced Settings', width=40, command=showadvancedsettings)
+advancedsettingsButton.grid(row=4,column=0,columnspan=2,pady=10,padx=20)
+advancedsettingsButton.configure(background='white')
+
 defaultsButton = Button(buttonCanvas, text='Reset Defaults', width=40, command=defaultSettings)
-defaultsButton.grid(row=4,column=0,columnspan=2,pady=10,padx=20)
+defaultsButton.grid(row=5,column=0,columnspan=2,pady=10,padx=20)
 defaultsButton.configure(background='white')
 
-advancedsettingsButton = Button(buttonCanvas, text='Advanced Settings', width=40, command=showadvancedsettings)
-advancedsettingsButton.grid(row=5,column=0,columnspan=2,pady=10,padx=20)
-advancedsettingsButton.configure(background='white')
+loadsettingsButton = Button(buttonCanvas, text='Load Settings', width=16, command=loadSettings)
+loadsettingsButton.grid(row=6,column=0,columnspan=1,pady=10,padx=20,sticky=E)
+loadsettingsButton.configure(background='white')
+
+savesettingsButton = Button(buttonCanvas, text='Save Settings', width=16, command=saveSettings)
+savesettingsButton.grid(row=6,column=1,columnspan=1,pady=10,padx=20,sticky=W)
+savesettingsButton.configure(background='white')
+
+# showadvancedsettings(0)
+# advancedsettingswindow.withdraw()
 
 VersionCheck()
 
