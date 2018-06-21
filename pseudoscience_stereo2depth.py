@@ -1120,6 +1120,6 @@ savesettingsButton.configure(background='white')
 # showadvancedsettings(0)
 # advancedsettingswindow.withdraw()
 
-VersionCheck()
+#VersionCheck()
 
 mainloop()
