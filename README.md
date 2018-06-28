@@ -2,7 +2,8 @@
 http://pseudoscience.pictures/<br>
 by Josh Gladstone and Timotheos Samartzidis
 
-Requires Python 3 and the opencv-contrib-python library.
+Requires Tkinter and the opencv-contrib-python library.
+Python 3 is recommended, but Python 2 alternatives are provided.
 
 <a href="https://youtu.be/i-QTbpjj4Mw?t=41">Here is a video</a> about getting Stereo2Depth up and running.
 

@@ -8,15 +8,30 @@ import cv2
 import sys, os
 import glob
 import time
-import urllib.request
 import unicodedata
 from threading import *
-from queue import *
 from os.path import join
+
+# Python 3
+'''
+import urllib.request
+from queue import *
 from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
+'''
+
+# Python 2
+import urllib2
+from Queue import *
+from Tkinter import *
+import tkFileDialog as filedialog
+import ttk
+import tkMessageBox as messagebox
+
+
+
 
 def Calculate():
     global currentfile, img, height, width, imgL, imgR, titleStr, RightEye
