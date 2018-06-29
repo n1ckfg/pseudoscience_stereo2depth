@@ -23,6 +23,8 @@ from tkinter import messagebox
 '''
 
 # Python 2
+import sys
+sys.path.append('/usr/local/lib/python2.7/site-packages')
 import urllib2
 from Queue import *
 from Tkinter import *
