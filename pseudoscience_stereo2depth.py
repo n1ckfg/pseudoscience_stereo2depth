@@ -4,7 +4,6 @@
 # Enjoy!
 
 import numpy as np
-import cv2
 import sys, os
 import glob
 import time
@@ -14,6 +13,7 @@ from os.path import join
 
 # Python 3
 '''
+import cv2
 import urllib.request
 from queue import *
 from tkinter import *
@@ -25,6 +25,7 @@ from tkinter import messagebox
 # Python 2
 import sys
 sys.path.append('/usr/local/lib/python2.7/site-packages')
+import cv2
 import urllib2
 from Queue import *
 from Tkinter import *
