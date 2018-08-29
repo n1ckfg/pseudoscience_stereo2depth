@@ -12,7 +12,6 @@ from threading import *
 from os.path import join
 
 # Python 3
-'''
 import cv2
 import urllib.request
 from queue import *
@@ -20,9 +19,9 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
-'''
 
 # Python 2
+'''
 import sys
 sys.path.append("/usr/local/lib/python2.7/site-packages")
 import cv2
@@ -32,7 +31,7 @@ from Tkinter import *
 import tkFileDialog as filedialog
 import ttk
 import tkMessageBox as messagebox
-
+'''
 
 
 
