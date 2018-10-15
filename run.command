@@ -10,4 +10,4 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 cd $DIR
 
-python pseudoscience_stereo2depth.py
+python3 pseudoscience_stereo2depth.py
